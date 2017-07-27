@@ -5,6 +5,7 @@
 QString BaseModel::tableName;
 QString BaseModel::tableFullName;
 QString BaseModel::tablePrefix = "ts_";
+bool BaseModel::isFullName = false;
 int BaseModel::uid;
 
 //QMap<QString, int> BaseModel::tableFields;
@@ -44,7 +45,7 @@ QVariantMap BaseModel::getOne(QString where)
         return row;
     }
     int count = model.rowCount();
-    //qDebug() << "条数：" << count;
+    qDebug() << "条数：" << count;
 
     for(int i=0; i<count; i++){
         QSqlRecord record = model.record(i);
@@ -69,8 +70,10 @@ QVariantMap BaseModel::getOne(QString where)
 }
 QVariantMap BaseModel::getOne(QVariantMap where)
 {
-    //qDebug() << __FUNCTION__;
-    //qDebug() << "table: " << table;
+    qDebug() << __FUNCTION__;
+    qDebug() << "table: " << table;
+
+    qDebug() << "uid 2: " << where["uid"];
 
     if(where.isEmpty()){
         return getOne("");
@@ -149,12 +152,39 @@ bool BaseModel::update(QVariantMap data, QString where)
 
     model.select();
     int num = model.rowCount();
+    QMap<QString, int> fields = getFields(table, true);
 
     qDebug() << "num: " << num;
+    qDebug() << "table: " << table;
 
+    // 批量修改也不行，难道批量操作要用QSqlRecord，不能用model.setData?
+    // model.setRecord的方式可以在for循环结束后再model.submitAll()
     for(int i=0; i<num; i++){
+        int row = i;
+        QSqlRecord record = model.record(i);
+        qDebug() << "row: " << i << ", id: " << record.value("id").toInt() << ", 0: " << record.value(0).toInt();
+        QMap<QString, QVariant>::const_iterator d = data.constBegin();
+        while(d != data.constEnd()){
 
+            QString key = d.key();
+            QString val = d.value().toString();
+            if(!fields.contains(key)){
+                ++d;
+                continue;
+            }
+            int col = fields[key];
+            //model.setData(model.index(row, col), val);
+            record.setValue(col, val);
+
+            ++d;
+        }
+        model.setRecord(i, record);
+        //model.submitAll(); // 原来每修改一条都要提交，在for循环结束后再提交只能修改第一个..
+        //model.setData(model.index(i, k), v);
     }
+
+    model.submitAll();
+    return true;
 
 }
 
@@ -181,17 +211,26 @@ bool BaseModel::del(QString where)
     }
 
 
-    //bool res = model.removeRows(0, num);
     //model.submitAll();
     //return res;
 
-    while(num > 0){
+    /*while(num > 0){
         model.setFilter(where);
         model.select();
         model.removeRows(0, 1);
         model.submitAll();
         num = model.rowCount();
+    }*/
+
+    // 删除与文档不一致：
+
+    //bool res = model.removeRows(0, num); // 无效
+    // 循环中删除一条并提交，有效
+    for(int i=0; i<num; i++){
+        model.removeRows(i, 1);
+        //model.submitAll();
     }
+    model.submitAll();
 
     return true;
 }
@@ -273,17 +312,16 @@ QMap<QString, int> BaseModel::getFields(QString tableName)
     //QString table = getTableName();
     //QString table = BaseModel::getTableName();
     QString table = BaseModel::tablePrefix + tableName;
-    //qDebug() << "table got in BaseModel: " << table;
+    qDebug() << "table got in BaseModel: " << table;
 
     return BaseModel::getTableFields(table);
 }
 
-
-QMap<QString, int> BaseModel::getFields(QString tableName, QString prefix)
+QString BaseModel::getTable(QString tName, bool full)
 {
-    QString table = prefix + tableName;
-    return BaseModel::getTableFields(table);
-};
+    QString t = !full ? tablePrefix + tName : tName;
+    return t;
+}
 
 //QMap<QString, int> BaseModel::getFields(QString tableName, bool isFullName = true)
 QMap<QString, int> BaseModel::getFields(QString tableName, bool isFullName)

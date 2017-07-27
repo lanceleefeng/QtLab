@@ -7,71 +7,23 @@
 #include "settingmodel.h"
 
 QString SettingModel::tableName = "settings";
+//bool SettingModel::isFullName = true;
 QMap<QString, int> SettingModel::tableFields;
 
 SettingModel::SettingModel()
     //: tableName("settings222")
 {
-
+    getFields(tableName);
+    table = getTable(tableName, isFullName);
 
 }
 
 SettingModel::~SettingModel()
 {
-
 }
 
 bool SettingModel::add(QVariantMap data)
 {
-
-    qDebug() << "SettingModel::add";
-
-    QMap<QString, int> index;
-    index["id"] = 0;
-    index["uid"] = 1;
-    index["auto_start"] = 2;
-    index["countdown"] = 3;
-    index["created_at"] = 4;
-    index["updated_at"] = 5;
-
-
-
-    // 这是表字段顺序，能通过sql查询搞定吗？
-
-
-    QSqlTableModel *model = new QSqlTableModel(Q_NULLPTR, DB::instance().conn);
-    model->setTable("t_settings");
-
-    int row = 0;
-    bool res = model->insertRows(row, 1);
-
-    /*QMap<QString, int>::const_iterator i = index.constBegin();
-    while(i != index.constEnd()){
-        int dataIndex = i.value();
-        QString dataKey = i.key();
-
-        ++i;
-    }
-    */
-
-    QMap<QString, QVariant>::const_iterator i = data.constBegin();
-    while(i != data.constEnd()){
-
-        QString dataKey = i.key();
-        QString dataVal = i.value().toString();
-        int dataIndex = index[dataKey];
-        QString dataIndex2 = dataKey;
-
-        qDebug() << "index: " << dataIndex << "; " << dataKey << ": " << dataVal ;
-        model->setData(model->index(row, dataIndex), dataVal);
-        //model->setData(model->index(row, dataIndex2), dataVal);
-
-        ++i;
-
-    }
-
-    model->submitAll();
-
 
     return true;
 }
@@ -108,3 +60,23 @@ bool SettingModel::saveSetting(QVariantMap data)
 
 
 }
+
+bool SettingModel::save(QVariantMap data)
+{
+    QVariantMap where;
+    where["uid"] = uid;
+
+    QVariantMap row = getOne(where);
+
+    if(row.isEmpty()){
+        qDebug() << "没有数据";
+        add(data);
+    }else{
+        qDebug() << "已有数据";
+        //where["id"] = row["id"];
+        update(data, where);
+    }
+
+    qDebug() << "fk" << row["id"];
+}
+

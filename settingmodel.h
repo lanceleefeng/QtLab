@@ -14,13 +14,11 @@ public:
     SettingModel();
     ~SettingModel();
 
-
     //QString tableName = "settings";
     static QString tableName;
+    //static bool isFullName;
+
     static QMap<QString, int> tableFields;
-
-    static QMap<QString, int> getTableFields();
-
 
     bool timestamp = true;
     QMap<QString, QString> timestampFields;
@@ -34,6 +32,7 @@ public:
     bool saveCountMode(int countDown);
 
     bool saveSetting(QVariantMap data);
+    bool save(QVariantMap data);
 };
 
 

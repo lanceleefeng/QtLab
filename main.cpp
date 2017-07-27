@@ -1,7 +1,7 @@
 
 #include <QApplication>
 #include <QMessageBox>
-
+#include <QDateTime>
 
 #include "init.h";
 //#include "mainwindow.h"
@@ -12,6 +12,9 @@
 
 int uid = 1;
 
+QString getTime();
+
+
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
@@ -20,13 +23,7 @@ int main(int argc, char *argv[])
     Init init;
     if(!init.succeed()){
         QMessageBox::critical(0, Tomato::name, QString("初始化失败"));
-        //QMessageBox::critical(0, Tomato.name, QString("初始化失败"));
-        //QMessageBox::critical(0, init.name, QString("初始化失败"));
-        //QMessageBox::critical(0, name , QString("初始化失败"));
         return -1;
-        //this->quit();
-
-        //return;
     }
 
     Tomato w;
@@ -36,13 +33,9 @@ int main(int argc, char *argv[])
     }
     w.show();
 
-
     if(w.autoStart){
         w.startCountDown();
     }
-
-    //qDebug() << "\n" << __FUNCTION__;
-
 
     SettingModel settingModel;
 
@@ -92,7 +85,6 @@ int main(int argc, char *argv[])
     //baseModel.add(data);
     //baseModel.update(data, where);
 
-
     //BaseModel baseModel("tableName", false);
 
     //模型类应该是与具体业务逻辑有关的，共同的部分应该在基类中
@@ -109,14 +101,12 @@ int main(int argc, char *argv[])
     BaseModel model("settings");
     BaseModel ring("rings");
 
-
     QMap<QString, int> fields =  BaseModel::getFields("settings");
     QMap<QString, int>::const_iterator i = fields.constBegin();
     while(i != fields.constEnd()){
         //qDebug() << i.key() << ": " << i.value();
         ++i;
     }
-
 
     QMap<QString, int> fields2 =  BaseModel::getFields("rings");
     QMap<QString, int>::const_iterator i2 = fields2.constBegin();
@@ -141,6 +131,12 @@ int main(int argc, char *argv[])
         ++s;
     }
 
+    //SettingModel sModel("settings");
+    //sModel.getOne(QString("uid=%1").arg(uid));
+
+    QMap<QString, int> f = model.getFields("settings");
+    qDebug() << "字段数：" << f.size();
+
     // 插入：2017-7-19 2:25:12
 
     QVariantMap newData;
@@ -162,13 +158,27 @@ int main(int argc, char *argv[])
     //model.update(updatedData, QMap<QString, QVariant>({{"uid", uid}, {"id", setting["id"]}}));
     model.update(updatedData, QMap<QString, QVariant>({{"uid", uid}}));
 
+    SettingModel sModel;
+    //model.save(updatedData);
+    //updatedData["crated_at"] = getTime();
+    //updatedData["created_at"] = getTime();
+    updatedData["updated_at"] = getTime();
+    qDebug() << "时间：" << getTime();
+    sModel.save(updatedData);
 
     // 删除
     //QString delWhere = "uid=" + uid + " AND id!=" + setting["id"].toString();
     //QString delWhere = QString("uid=%1 AND id!=%2").arg(uid).arg(setting["id"].toInt());
-    QString delWhere = QString("uid=%1 AND id>=%2").arg(uid).arg(70);
+    QString delWhere = QString("uid=%1 AND id>=%2").arg(uid).arg(28);
     //model.del(QMap<QString, QVariant>({{"uid",uid}}));
     model.del(delWhere);
 
     return a.exec();
+}
+
+QString getTime()
+{
+    QString format = "yyyy-MM-dd hh:mm::ss";
+    QString time = QDateTime::currentDateTime().toString(format);
+    return time;
 }
