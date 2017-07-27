@@ -17,6 +17,9 @@ public:
     static QString tableFullName;
     static QString tablePrefix;
     QString table;
+    static bool isFullName;
+
+    static QString getTable(QString tName, bool full);
 
     static int uid;
 
@@ -42,7 +45,6 @@ public:
 
     //static QMap<QString, int> getFields();
     static QMap<QString, int> getFields(QString tableName);
-    static QMap<QString, int> getFields(QString tableName, QString prefix);
     static QMap<QString, int> getFields(QString tableName, bool isFullName);
 
     static QMap<QString, int> getTableFields(QString table);
