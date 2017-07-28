@@ -2,20 +2,26 @@
 #include "db.h"
 #include "basemodel.h"
 
-QString BaseModel::tableName;
-QString BaseModel::tableFullName;
-QString BaseModel::tablePrefix = "ts_";
-bool BaseModel::isFullName = false;
 int BaseModel::uid;
 
-//QMap<QString, int> BaseModel::tableFields;
+bool BaseModel::isFullName = false;
+QString BaseModel::tablePrefix = "ts_";
+
+
 QMap<QString, QMap<QString, int>> BaseModel::tableFields;
 
-
+/**
+ * 无参构造函数
+ */
 BaseModel::BaseModel()
 {
     //setTableInfo();
 }
+/**
+ * 指定表名的构造函数
+ * 使用默认前缀，由BaseModel::tablePrefix指定
+ * @param tableName
+ */
 BaseModel::BaseModel(QString tableName){
     //qDebug() << "table name: " << tableName;
 
@@ -29,10 +35,6 @@ BaseModel::BaseModel(QString tableName){
 
 QVariantMap BaseModel::getOne(QString where)
 {
-
-    //qDebug() << __FUNCTION__;
-    //qDebug() << "table: " << table;
-
     QVariantMap row;
 
     QSqlTableModel model(Q_NULLPTR, DB::instance().conn);
@@ -45,77 +47,43 @@ QVariantMap BaseModel::getOne(QString where)
         return row;
     }
     int count = model.rowCount();
-    qDebug() << "条数：" << count;
+    //qDebug() << "条数：" << count;
 
     for(int i=0; i<count; i++){
         QSqlRecord record = model.record(i);
-        int id = record.value("id").toInt();
-        int autoStart = record.value("auto_start").toInt();
-        int countDown = record.value("countdown").toInt();
-        //qDebug() << "record: " << i;
-        //qDebug() << "id: " << id << ", autoStart: " << autoStart << ", countdown: " << countDown;
-
         int fieldsNum = record.count();
-        //qDebug() << "fields num: " << fieldsNum;
-
         for(int j=0; j<fieldsNum; j++){
-            //qDebug() << record.fieldName(j) << ": \t" << record.value(j).toString();
             row[record.fieldName(j)] = record.value(j);
         }
         break;
-
     }
-
     return row;
 }
 QVariantMap BaseModel::getOne(QVariantMap where)
 {
-    qDebug() << __FUNCTION__;
-    qDebug() << "table: " << table;
-
-    qDebug() << "uid 2: " << where["uid"];
-
     if(where.isEmpty()){
         return getOne("");
     }
 
     QString wh = getWhere(where);
     return getOne(wh);
-
 }
 
 
 bool BaseModel::add(QVariantMap data)
 {
-
-    //qDebug() << __FUNCTION__ << "用模型插入数据";
-    //
-    //qDebug() << "表：" << table;
-
     if(data.isEmpty()){
         return false;
     }
 
-    //qDebug() << "没有数据？";
-
     QSqlTableModel model(Q_NULLPTR, DB::instance().conn);
     model.setTable(table);
-    //QVariantMap fields = getFields(table);
-    //QMap<QString, int> fields = getFields(table);
     QMap<QString, int> fields = getFields(table, true);
 
     if(fields.isEmpty()){
-        qDebug() << "shit, fields not obtained";
+        //qDebug() << "shit, fields not obtained";
+        return false;
     }
-
-    QMap<QString, int>::const_iterator k = fields.constBegin();
-    while(k != fields.constEnd()){
-        //qDebug() << k.key() << ": " << k.value();
-        ++k;
-    }
-
-
-    // 先插入数据再说，后面再考虑自动添加时间戳的问题
 
     int row = 0;
     model.insertRows(row, 1);
@@ -126,7 +94,6 @@ bool BaseModel::add(QVariantMap data)
         int index = fields[key];
         QString val = i.value().toString();
 
-        //qDebug() << "index: " << index << ", key: " << key << ", val: " << val;
         model.setData(model.index(row, index), val);
         ++i;
     }
@@ -154,15 +121,11 @@ bool BaseModel::update(QVariantMap data, QString where)
     int num = model.rowCount();
     QMap<QString, int> fields = getFields(table, true);
 
-    qDebug() << "num: " << num;
-    qDebug() << "table: " << table;
 
-    // 批量修改也不行，难道批量操作要用QSqlRecord，不能用model.setData?
     // model.setRecord的方式可以在for循环结束后再model.submitAll()
     for(int i=0; i<num; i++){
         int row = i;
-        QSqlRecord record = model.record(i);
-        qDebug() << "row: " << i << ", id: " << record.value("id").toInt() << ", 0: " << record.value(0).toInt();
+        QSqlRecord record = model.record(row);
         QMap<QString, QVariant>::const_iterator d = data.constBegin();
         while(d != data.constEnd()){
 
@@ -178,7 +141,7 @@ bool BaseModel::update(QVariantMap data, QString where)
 
             ++d;
         }
-        model.setRecord(i, record);
+        model.setRecord(row, record);
         //model.submitAll(); // 原来每修改一条都要提交，在for循环结束后再提交只能修改第一个..
         //model.setData(model.index(i, k), v);
     }
@@ -245,22 +208,19 @@ QString BaseModel::getWhere(QVariantMap where)
     QMap<QString, int> fields = getFields(table, true);
 
     QString w;
-    int num = where.size();
     bool first = true;
     QMap<QString, QVariant>::const_iterator con = where.constBegin();
 
-    qDebug() << "条件：";
+    //qDebug() << "条件：";
     while(con != where.constEnd()){
         QString key = con.key();
         QString val = con.value().toString();
-
-        qDebug() << key << ": \t" << val;
+        //qDebug() << key << ": \t" << val;
 
         if(!fields.contains(key)){
             ++con;
             continue;
         }
-
         if(!first){
             w += " AND " + key + "=" + val;
         }else{
@@ -271,35 +231,9 @@ QString BaseModel::getWhere(QVariantMap where)
         ++con;
     }
 
-    qDebug() << "where: " << w;
-
+    //qDebug() << "where: " << w;
     return w;
 }
-
-//void BaseModel::setTableInfo()
-//QMap<QString, int> BaseModel::setTableInfo()
-//QMap<QString, int> BaseModel::getTableFields()
-
-QMap<QString, QMap<QString, int>> getTableFields()
-{
-    /*QString table = getTableName();
-    qDebug() << "table got in BaseModel: " << table;
-
-    QString sql = "PRAGMA table_info("+table+")";
-    QStringList keys;
-    keys << "cid" << "name";
-
-    static DB& db = DB::instance();
-    QList<QVariantMap> tableInfoList = db.query(sql, keys); // QList<QMap<QString, QVariant>>
-
-    QMap<QString, int> tableInfo;
-    QVariantMap field;
-    foreach(field, tableInfoList){
-            tableInfo[field["name"].toString()] = field["cid"].toInt();
-        }
-    return tableInfo;*/
-}
-
 
 /**
  * 获取表字段列表，使用默认前缀
@@ -317,13 +251,24 @@ QMap<QString, int> BaseModel::getFields(QString tableName)
     return BaseModel::getTableFields(table);
 }
 
+/**
+ * 获取表名，指定是否是全名（全名不加前缀）
+ * @param tName
+ * @param full
+ * @return
+ */
 QString BaseModel::getTable(QString tName, bool full)
 {
     QString t = !full ? tablePrefix + tName : tName;
     return t;
 }
 
-//QMap<QString, int> BaseModel::getFields(QString tableName, bool isFullName = true)
+/**
+ * 获取表字段信息
+ * @param tableName
+ * @param isFullName
+ * @return
+ */
 QMap<QString, int> BaseModel::getFields(QString tableName, bool isFullName)
 {
     if(isFullName){
@@ -333,7 +278,7 @@ QMap<QString, int> BaseModel::getFields(QString tableName, bool isFullName)
     }
 };
 /**
- * 获取表的字段列表
+ * 获取表段列信息
  * @param QString table 不再处理前缀问题，直接使用表名
  * @return
  */
@@ -345,12 +290,15 @@ QMap<QString, int> BaseModel::getTableFields(QString table)
     return BaseModel::tableFields[table];
 }
 
+/**
+ * 设置表字段信息
+ * @param table
+ */
 void BaseModel::setTableFields(QString table)
 {
     if(!tableFields[table].isEmpty()){
         return;
     }
-
     //qDebug() << "table got in BaseModel: " << table;
 
     QString sql = "PRAGMA table_info("+table+")";
