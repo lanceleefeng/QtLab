@@ -6,61 +6,44 @@
 #include "db.h"
 #include "settingmodel.h"
 
+/**
+ * 表名
+ */
 QString SettingModel::tableName = "settings";
 //bool SettingModel::isFullName = true;
-QMap<QString, int> SettingModel::tableFields;
 
+/**
+ * 构造函数
+ */
 SettingModel::SettingModel()
-    //: tableName("settings222")
 {
     getFields(tableName);
     table = getTable(tableName, isFullName);
-
 }
 
 SettingModel::~SettingModel()
 {
 }
 
-bool SettingModel::add(QVariantMap data)
-{
-
-    return true;
-}
-
-
+/**
+ * 保存计时方式
+ * 1 倒计时，0 正计时
+ * @param countDown
+ * @return
+ */
 bool SettingModel::saveCountMode(int countDown)
 {
-    //qDebug() << "in " << __FUNCTION__ << "保存到数据库";
-
     QVariantMap data;
     data["countdown"] = countDown > 0 ? 1 : 0;
-
-    return saveSetting(data);
+    return save(data);
 }
 
-bool SettingModel::saveSetting(QVariantMap data)
-{
-    qDebug() << "in " << __FUNCTION__;
-
-    static DB& db = DB::instance();
-
-    //db.exec(table, data, fields);
-
-    //if()
-    //add(data);
-    //add(data, table, fields);
-
-    //update(data, condition);
-    //update(data, condition, table, fields)
-
-    //
-
-    return true;
-
-
-}
-
+/**
+ * 保存设置
+ * 没有则添加记录，有则修改
+ * @param data
+ * @return
+ */
 bool SettingModel::save(QVariantMap data)
 {
     QVariantMap where;
@@ -69,14 +52,15 @@ bool SettingModel::save(QVariantMap data)
     QVariantMap row = getOne(where);
 
     if(row.isEmpty()){
-        qDebug() << "没有数据";
+        //qDebug() << "没有数据";
         add(data);
     }else{
-        qDebug() << "已有数据";
+        //qDebug() << "已有数据";
         //where["id"] = row["id"];
         update(data, where);
     }
 
-    qDebug() << "fk" << row["id"];
+    //qDebug() << "fk" << row["id"];
+    return true;
 }
 
